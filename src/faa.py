@@ -3,6 +3,7 @@
 import time
 from subprocess import Popen, PIPE
 import os
+from typing import Union
 from io import StringIO
 import pandas
 from fastapi import FastAPI
@@ -51,19 +52,20 @@ async def model(model_name):
 #Retrieve namespaced events
 
 def namespace_event(namespace, limit):
-    print(namespace)
     args = f'/app/oc get events -n {namespace} --sort-by=.metadata.creationTimestamp'
     args2 = f'head -{limit}'
     cmd = Popen([args], shell=True, stdout=PIPE)
     cmd2 = Popen([args2], shell=True, stdin=cmd.stdout, stdout=PIPE)
     out, err = cmd2.communicate()
     out = out.decode("utf-8")
-    print(out)
     data = StringIO(out)
     new_data = pandas.read_table(data)
     return new_data
 
-@app.get("/namespace_events/{item_id}/{limit_id}")
-async def namspace_events(item_id, limit_id: int):
-     return namespace_event(item_id, limit_id)
+@app.get("/namespace_events/{item_id}")
+async def namspace_events(item_id, limit: Union[int, None] = None):
+     if limit:
+       return namespace_event(item_id, limit)
+     else:
+       return namespace_event(item_id, 20)
 
